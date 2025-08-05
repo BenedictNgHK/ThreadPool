@@ -6,33 +6,21 @@
 #include <future>
 #include <memory>
 #include <condition_variable>
-#include <queue>
+#include <deque>
 #include <vector>
 #include <functional>
 #include <atomic>
+#include <random>
+
 class ThreadPool 
 {
 public: 
-	static std::shared_ptr<ThreadPool> getInstance(unsigned int  threadNo = std::thread::hardware_concurrency() + 1);
-	
+	static std::shared_ptr<ThreadPool> getInstance(unsigned int threadNo = std::thread::hardware_concurrency());
+
 	ThreadPool(const ThreadPool&) = delete;
-	ThreadPool & operator=(const ThreadPool&) = delete;
+	ThreadPool& operator=(const ThreadPool&) = delete;
 	~ThreadPool();
-	/*template<typename F, class... Args>
-	void enqueue(F&& f, Args &&... args)
-	{
-		
-		std::function<void()> task = std::bind(std::forward<F>(f), std::forward<Args>(args)...);
 
-		
-		std::unique_lock<std::mutex> lock(mtx);
-		tasks.emplace(std::move(task));
-		
-		lock.unlock();
-
-		cond.notify_one();
-		
-	}*/
 	template<typename F, typename... Args>
 	auto enqueue(F&& f, Args&&... args) -> std::future<decltype(f(args...))>
 	{
@@ -40,37 +28,38 @@ public:
 		auto task = std::make_shared<std::packaged_task<return_type()>>(
 			std::bind(std::forward<F>(f), std::forward<Args>(args)...)
 		);
-
 		std::future<return_type> res = task->get_future();
 
+		size_t idx = next_worker++ % thread_no;
+
 		{
-			std::unique_lock<std::mutex> lock(mtx);
-			if (stop)
-				throw std::runtime_error("enqueue on stopped ThreadPool");
-			tasks.emplace([task]() { (*task)(); });
+			std::lock_guard<std::mutex> lock(queue_mutexes[idx]);
+			queues[idx].emplace_front([task]() { (*task)(); });
 		}
 
-		cond.notify_one();
+		conds[idx].notify_one();
 		return res;
 	}
 
-	bool full() const ;
-	bool idle() const ;
+	bool full() const { return false; } // not applicable anymore
+	bool idle() const;
 	int working_threads() const;
-	
+
 private:
-	std::vector<std::thread> threads;
-	
-	std::queue<std::function<void()>> tasks;
-	std::mutex mtx;
-	std::condition_variable cond;
-	unsigned int thread_no;
-	bool stop;
-	ThreadPool(unsigned int  threadNo);
+	ThreadPool(unsigned int threadNo);
+	void worker_loop(size_t index);
+
 	static std::once_flag flag;
 	static std::shared_ptr<ThreadPool> instance;
-	
+
+	unsigned int thread_no;
+	bool stop = false;
+
+	std::vector<std::thread> threads;
+	std::vector<std::deque<std::function<void()>>> queues;
+	std::vector<std::mutex> queue_mutexes;
+	std::vector<std::condition_variable> conds;
+
+	std::atomic<size_t> next_worker{0};
 	static std::atomic<int> active_threads;
 };
-
-

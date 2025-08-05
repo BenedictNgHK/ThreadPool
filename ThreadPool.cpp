@@ -1,77 +1,95 @@
-// ThreadPool.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
 #include "ThreadPool.h"
 #include <iostream>
+#include <random>
+
 std::once_flag ThreadPool::flag;
 std::shared_ptr<ThreadPool> ThreadPool::instance = nullptr;
 std::atomic<int> ThreadPool::active_threads{0};
-ThreadPool::ThreadPool(unsigned int  threadNo):thread_no(threadNo), stop(false)
+
+ThreadPool::ThreadPool(unsigned int threadNo)
+    : thread_no(threadNo), stop(false),
+      queues(threadNo), queue_mutexes(threadNo), conds(threadNo)
 {
-	for (unsigned int i = 0; i < thread_no; i++)
-		
-		threads.emplace_back([this]() {
-		while (true)
+	for (size_t i = 0; i < thread_no; ++i) {
+		threads.emplace_back([this, i]() {
+			worker_loop(i);
+		});
+	}
+}
+
+void ThreadPool::worker_loop(size_t index)
+{
+	std::mt19937 rng(std::random_device{}());
+	std::uniform_int_distribution<size_t> dist(0, thread_no - 1);
+
+	while (true)
+	{
+		std::function<void()> task;
+
 		{
-			std::function<void()> task;
+			std::unique_lock<std::mutex> lock(queue_mutexes[index]);
 
-			{
-				std::unique_lock<std::mutex> lock(mtx);
-				
-				cond.wait(lock, [this]() {
-					return !tasks.empty() || stop;
-					});
-				if (stop && tasks.empty())
-					return;
-
-				task = std::move(tasks.front());
-				tasks.pop();
-				active_threads++;  // Increment active count before running the task
-			}
-
-			task(); // Execute task
-
-			active_threads--; // Decrement active count after task completes
-		}
+			conds[index].wait(lock, [this, index] {
+				return stop || !queues[index].empty();
 			});
 
+			if (stop && queues[index].empty())
+				break;
+
+			if (!queues[index].empty()) {
+				task = std::move(queues[index].front());
+				queues[index].pop_front();
+			}
+		}
+
+		// Try to steal if no task
+		if (!task) {
+			for (int attempt = 0; attempt < thread_no; ++attempt) {
+				size_t victim = dist(rng);
+				if (victim == index) continue;
+
+				std::lock_guard<std::mutex> lock(queue_mutexes[victim]);
+				if (!queues[victim].empty()) {
+					task = std::move(queues[victim].back());
+					queues[victim].pop_back();
+					break;
+				}
+			}
+		}
+
+		if (task) {
+			active_threads++;
+			task();
+			active_threads--;
+		}
+	}
 }
 
 ThreadPool::~ThreadPool()
 {
-	
-	std::unique_lock<std::mutex> lock(mtx);
 	stop = true;
-	lock.unlock();
-	cond.notify_all();
-	for (auto & t : threads)
-	{
+	for (auto& cond : conds)
+		cond.notify_all();
+
+	for (auto& t : threads)
 		if (t.joinable())
 			t.join();
-	}
-	
-
 }
-std::shared_ptr<ThreadPool> ThreadPool::getInstance(unsigned int  threadNo)
+
+std::shared_ptr<ThreadPool> ThreadPool::getInstance(unsigned int threadNo)
 {
 	std::call_once(flag, [threadNo]() {
 		instance = std::shared_ptr<ThreadPool>(new ThreadPool(threadNo));
-		});
-
+	});
 	return instance;
 }
-bool ThreadPool::full() const
-{
-	//std::unique_lock<std::mutex> lock(mtx);
-	return tasks.size() >= thread_no;
-}
+
 bool ThreadPool::idle() const
 {
-	//std::lock_guard<std::mutex> lock(mtx);
 	return active_threads == 0;
 }
+
 int ThreadPool::working_threads() const
 {
-	//std::lock_guard<std::mutex> lock(mtx);
 	return active_threads.load();
 }
