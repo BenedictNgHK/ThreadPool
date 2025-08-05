@@ -117,24 +117,24 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named ThreadPoll
+# Target rules for targets named ThreadPool
 
 # Build rule for target.
-ThreadPoll: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 ThreadPoll
-.PHONY : ThreadPoll
+ThreadPool: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 ThreadPool
+.PHONY : ThreadPool
 
 # fast build rule for target.
-ThreadPoll/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/ThreadPoll.dir/build.make CMakeFiles/ThreadPoll.dir/build
-.PHONY : ThreadPoll/fast
+ThreadPool/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ThreadPool.dir/build.make CMakeFiles/ThreadPool.dir/build
+.PHONY : ThreadPool/fast
 
 ThreadPool.o: ThreadPool.cpp.o
 .PHONY : ThreadPool.o
 
 # target to build an object file
 ThreadPool.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/ThreadPoll.dir/build.make CMakeFiles/ThreadPoll.dir/ThreadPool.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ThreadPool.dir/build.make CMakeFiles/ThreadPool.dir/ThreadPool.cpp.o
 .PHONY : ThreadPool.cpp.o
 
 ThreadPool.i: ThreadPool.cpp.i
@@ -142,7 +142,7 @@ ThreadPool.i: ThreadPool.cpp.i
 
 # target to preprocess a source file
 ThreadPool.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/ThreadPoll.dir/build.make CMakeFiles/ThreadPoll.dir/ThreadPool.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ThreadPool.dir/build.make CMakeFiles/ThreadPool.dir/ThreadPool.cpp.i
 .PHONY : ThreadPool.cpp.i
 
 ThreadPool.s: ThreadPool.cpp.s
@@ -150,7 +150,7 @@ ThreadPool.s: ThreadPool.cpp.s
 
 # target to generate assembly for a file
 ThreadPool.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/ThreadPoll.dir/build.make CMakeFiles/ThreadPoll.dir/ThreadPool.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ThreadPool.dir/build.make CMakeFiles/ThreadPool.dir/ThreadPool.cpp.s
 .PHONY : ThreadPool.cpp.s
 
 main.o: main.cpp.o
@@ -158,7 +158,7 @@ main.o: main.cpp.o
 
 # target to build an object file
 main.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/ThreadPoll.dir/build.make CMakeFiles/ThreadPoll.dir/main.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ThreadPool.dir/build.make CMakeFiles/ThreadPool.dir/main.cpp.o
 .PHONY : main.cpp.o
 
 main.i: main.cpp.i
@@ -166,7 +166,7 @@ main.i: main.cpp.i
 
 # target to preprocess a source file
 main.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/ThreadPoll.dir/build.make CMakeFiles/ThreadPoll.dir/main.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ThreadPool.dir/build.make CMakeFiles/ThreadPool.dir/main.cpp.i
 .PHONY : main.cpp.i
 
 main.s: main.cpp.s
@@ -174,7 +174,7 @@ main.s: main.cpp.s
 
 # target to generate assembly for a file
 main.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/ThreadPoll.dir/build.make CMakeFiles/ThreadPoll.dir/main.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ThreadPool.dir/build.make CMakeFiles/ThreadPool.dir/main.cpp.s
 .PHONY : main.cpp.s
 
 # Help Target
@@ -185,7 +185,7 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... ThreadPoll"
+	@echo "... ThreadPool"
 	@echo "... ThreadPool.o"
 	@echo "... ThreadPool.i"
 	@echo "... ThreadPool.s"

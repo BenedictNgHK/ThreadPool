@@ -5,24 +5,11 @@
 #include <iostream>
 std::once_flag ThreadPool::flag;
 std::shared_ptr<ThreadPool> ThreadPool::instance = nullptr;
-int ThreadPool::active_threads{0};
+std::atomic<int> ThreadPool::active_threads{0};
 ThreadPool::ThreadPool(unsigned int  threadNo):thread_no(threadNo), stop(false)
 {
 	for (unsigned int i = 0; i < thread_no; i++)
-		/*threads.emplace_back([this]() {
-		while (true)
-		{
-			std::unique_lock <std::mutex> lock(mtx);
-			cond.wait(lock, [this]() {
-				return !tasks.empty() || stop;
-				});
-			if (stop && tasks.empty()) return;
-			auto task = std::move(tasks.front());
-			tasks.pop();
-			lock.unlock();
-			task();
-		}
-		});*/
+		
 		threads.emplace_back([this]() {
 		while (true)
 		{
@@ -58,7 +45,8 @@ ThreadPool::~ThreadPool()
 	cond.notify_all();
 	for (auto & t : threads)
 	{
-		t.join();
+		if (t.joinable())
+			t.join();
 	}
 	
 
@@ -71,13 +59,18 @@ std::shared_ptr<ThreadPool> ThreadPool::getInstance(unsigned int  threadNo)
 
 	return instance;
 }
-bool ThreadPool::full()
+bool ThreadPool::full() const
 {
-	std::unique_lock<std::mutex> lock(mtx);
+	//std::unique_lock<std::mutex> lock(mtx);
 	return tasks.size() >= thread_no;
 }
-bool ThreadPool::idle() 
+bool ThreadPool::idle() const
 {
-	std::lock_guard<std::mutex> lock(mtx);
-	return active_threads == 0 && tasks.empty();
+	//std::lock_guard<std::mutex> lock(mtx);
+	return active_threads == 0;
+}
+int ThreadPool::working_threads() const
+{
+	//std::lock_guard<std::mutex> lock(mtx);
+	return active_threads.load();
 }

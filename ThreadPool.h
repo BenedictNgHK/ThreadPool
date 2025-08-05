@@ -54,8 +54,9 @@ public:
 		return res;
 	}
 
-	bool full();
-	bool idle() ;
+	bool full() const ;
+	bool idle() const ;
+	int working_threads() const;
 	
 private:
 	std::vector<std::thread> threads;
@@ -69,7 +70,7 @@ private:
 	static std::once_flag flag;
 	static std::shared_ptr<ThreadPool> instance;
 	
-	static int active_threads;
+	static std::atomic<int> active_threads;
 };
 
 
