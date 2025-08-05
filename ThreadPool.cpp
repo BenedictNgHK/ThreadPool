@@ -17,6 +17,7 @@ ThreadPool::ThreadPool(unsigned int  threadNo):thread_no(threadNo), stop(false)
 
 			{
 				std::unique_lock<std::mutex> lock(mtx);
+				
 				cond.wait(lock, [this]() {
 					return !tasks.empty() || stop;
 					});
