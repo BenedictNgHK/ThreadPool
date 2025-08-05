@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
 		std::cout << "Enqueuing task " << i << std::endl;
 		result[i] = pool->enqueue([i](int){
 			std::cout << "Task " << i << " is running" << std::endl;
-			int result = fibo(std::rand()%20 + 20); // Simulate a CPU-intensive task
+			int result = fibo(std::rand()%20 + 35); // Simulate a CPU-intensive task
 			std::cout << "Task " << i << " is finished" << std::endl;
 			return result;
 
