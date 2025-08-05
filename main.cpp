@@ -20,9 +20,9 @@ int main(int argc, char* argv[])
 	for (int i = 0; i < TASK_NUM; i++)
 	{
 		std::cout << "Enqueuing task " << i << std::endl;
-		result[i] = pool->enqueue([i](int){
+		result[i] = pool->enqueue([i,TASK_NUM](int){
 			std::cout << "Task " << i << " is running" << std::endl;
-			int result = fibo(i); // Simulate a CPU-intensive task
+			int result = fibo(TASK_NUM - i); // Simulate a CPU-intensive task
 			std::cout << "Task " << i << " is finished" << std::endl;
 			return result;
 
