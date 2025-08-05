@@ -41,7 +41,6 @@ public:
 		return res;
 	}
 
-	bool full() const { return false; } // not applicable anymore
 	bool idle() const;
 	int working_threads() const;
 
