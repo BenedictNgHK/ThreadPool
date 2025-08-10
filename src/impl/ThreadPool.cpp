@@ -43,19 +43,23 @@ void ThreadPool::worker_loop(size_t index)
 		}
 
 		// Try to steal if no task
-		if (!task) {
-			for (int attempt = 0; attempt < thread_no; ++attempt) {
-				size_t victim = dist(rng);
-				if (victim == index) continue;
+		 if (!task) {
+        for (decltype(thread_no) attempt = 0; attempt < thread_no; ++attempt) {
+            size_t victim = dist(rng);
+            if (victim == index) continue;
 
-				std::lock_guard<std::mutex> lock(queue_mutexes[victim]);
-				if (!queues[victim].empty()) {
-					task = std::move(queues[victim].back());
-					queues[victim].pop_back();
-					break;
-				}
-			}
-		}
+            if (queue_mutexes[victim].try_lock()) {
+                if (!queues[victim].empty()) {
+                    task = std::move(queues[victim].back());
+                    queues[victim].pop_back();
+                }
+                queue_mutexes[victim].unlock();
+                if (task) break;
+            }
+            
+            std::this_thread::yield();  // Prevent busy waiting
+        }
+    }
 
 		if (task) {
 			active_threads++;
