@@ -1,42 +1,80 @@
-#include "ThreadPool.h"
+#include <ThreadPool.h>
 #include <iostream>
-#include <thread>
-#include <future>
-#include <chrono>
-
-
-int fibo(int n) 
-{
-	if (n <= 2) return  1;
-	return fibo(n - 1) + fibo(n - 2);
+#include <cmath>
+void complex_task(int n, int complexity) {
+    volatile double result = 0;
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < complexity; ++j) {
+            result += std::sqrt(i * j + 1.0); // Some floating-point computation
+        }
+    }
 }
-int main(int argc, char* argv[])
-{
-	int TASK_NUM = argv[1] ? std::atoi(argv[1]) : 10; // Default to 10 tasks if no argument is provided
-	auto pool = ThreadPool::getInstance();
-	auto start = std::chrono::steady_clock::now();
-	std::vector<std::future<int>> result(TASK_NUM);
-	std::cout << "CPU Core Size is " << std::thread::hardware_concurrency()<<std::endl;
-	for (int i = 0; i < TASK_NUM; i++)
-	{
-		std::cout << "Enqueuing task " << i << std::endl;
-		result[i] = pool->enqueue([i,TASK_NUM](int){
-			std::cout << "Task " << i << " is running" << std::endl;
-			int result = fibo(TASK_NUM- i); // Simulate a CPU-intensive task
-			std::cout << "Task " << i << " is finished" << std::endl;
-			return result;
+void test_imbalanced_workload() {
+    const int TOTAL_TASKS = 32;
+    const int THREAD_COUNT = 4;
+    auto pool = ThreadPool::getInstance(THREAD_COUNT);
+    std::vector<std::future<void>> results;
 
-		}, i); // Enqueue tasks with varying input
-	}
-		for (int i = 0; i < TASK_NUM; i++)
-		std::cout << "Result of task " << i << " is " << result[i].get() << std::endl;
-	
+    auto start = std::chrono::high_resolution_clock::now();
 
-	while (!pool->idle());
-	std::cout << "The pool is idle" << std::endl;
+    // First few tasks are very heavy, rest are light
+    for (int i = 0; i < TOTAL_TASKS; ++i) {
+        if (i < THREAD_COUNT) {
+            results.push_back(pool->enqueue([i] {
+                std::cout << "Heavy task " << i << " started on thread " << std::this_thread::get_id() << std::endl;
+                complex_task(100000, 1000); // Very heavy
+                std::cout << "Heavy task " << i << " completed\n";
+            }));
+        } else {
+            results.push_back(pool->enqueue([i] {
+                std::cout << "Light task " << i << " started on thread " << std::this_thread::get_id() << std::endl;
+                complex_task(1000, 100); // Light
+                std::cout << "Light task " << i << " completed\n";
+            }));
+        }
+    }
 
-	auto end = std::chrono::steady_clock::now();
-	std::chrono::duration<double> elapsed = end - start;
-	std::cout << "ThreadPool has finished execution in " << elapsed.count() << " seconds\n";
-	return 0;
+    for (auto& result : results) result.get();
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    std::cout << "[Imbalanced] Total execution time: " << duration.count() << "ms\n";
+}
+
+void test_balanced_workload() {
+    const int TOTAL_TASKS = 32;
+    const int THREAD_COUNT = 4;
+    auto pool = ThreadPool::getInstance(THREAD_COUNT);
+    std::vector<std::future<void>> results;
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    // All tasks are equally heavy
+    for (int i = 0; i < TOTAL_TASKS; ++i) {
+        results.push_back(pool->enqueue([i] {
+            std::cout << "Balanced task " << i << " started on thread " << std::this_thread::get_id() << std::endl;
+            complex_task(5000, 1000); // All tasks same
+            std::cout << "Balanced task " << i << " completed\n";
+        }));
+    }
+
+    for (auto& result : results) result.get();
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    std::cout << "[Balanced] Total execution time: " << duration.count() << "ms\n";
+}
+
+int main() {
+    std::cout << "Testing workload balance with " 
+              << std::thread::hardware_concurrency() 
+              << " hardware threads available\n\n";
+
+    std::cout << "=== Imbalanced Workload Test ===\n";
+    test_imbalanced_workload();
+
+    // std::cout << "\n=== Balanced Workload Test ===\n";
+    // test_balanced_workload();
+
+    return 0;
 }
